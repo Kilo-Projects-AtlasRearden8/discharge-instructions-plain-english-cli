@@ -10,7 +10,20 @@ from rich.console import Console
 
 from . import __version__
 from .config import Config
-from .rewrite import RewriteError, rewrite_instructions
+from .rewrite import (
+    DISCLAIMER_BANNER,
+    RewriteError,
+    RewriteResult,
+    format_output,
+    rewrite_instructions,
+)
+
+
+def version_callback(value: bool) -> None:
+    if value:
+        print(f"discharge-plain {__version__}")
+        raise typer.Exit()
+
 
 app = typer.Typer(
     name="discharge-plain",
@@ -19,7 +32,16 @@ app = typer.Typer(
     rich_markup_mode="rich",
 )
 
-console = Console()
+console = Console(stderr=True)
+
+
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        False, "--version", help="Show version and exit", callback=version_callback, is_eager=True
+    ),
+) -> None:
+    """Discharge Instructions Plain English CLI."""
 
 
 def _read_input(file: Path | None, text: str | None) -> str:
@@ -29,7 +51,7 @@ def _read_input(file: Path | None, text: str | None) -> str:
     if text is not None:
         return text
     if sys.stdin.isatty():
-        console.print("[yellow]Enter discharge instructions (Ctrl-D to finish):[/yellow]", err=True)
+        console.print("[yellow]Enter discharge instructions (Ctrl-D to finish):[/yellow]")
     return sys.stdin.read()
 
 
@@ -53,7 +75,6 @@ def rewrite(
     no_disclaimer: bool = typer.Option(
         False, "--no-disclaimer", help="Suppress the education-only disclaimer banner"
     ),
-    version: bool = typer.Option(False, "--version", help="Show version and exit"),
 ) -> None:
     """Rewrite hospital discharge instructions into plain language.
 
@@ -62,13 +83,9 @@ def rewrite(
 
     This tool is for EDUCATIONAL PURPOSES ONLY. Output is NOT medical advice.
     """
-    if version:
-        console.print(f"discharge-plain {__version__}")
-        raise typer.Exit()
-
     instructions = _read_input(file, text).strip()
     if not instructions:
-        console.print("[red]Error: No input provided[/red]", err=True)
+        console.print("[red]Error: No input provided[/red]")
         raise typer.Exit(code=1)
 
     # Build config with any overrides
@@ -89,16 +106,16 @@ def rewrite(
             rewrite_instructions(instructions, config=config, show_disclaimer=not no_disclaimer)
         )
     except RewriteError as e:
-        console.print(f"[red]Error: {e}[/red]", err=True)
+        console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(code=1)
 
-    console.print(result.rewritten)
+    console.print(format_output(result, show_disclaimer=not no_disclaimer))
 
 
 @app.command()
 def version() -> None:
     """Show the version."""
-    console.print(f"discharge-plain {__version__}")
+    print(f"discharge-plain {__version__}")
 
 
 if __name__ == "__main__":

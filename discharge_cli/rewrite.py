@@ -99,11 +99,11 @@ async def call_llm(
 
 def format_output(result: RewriteResult, show_disclaimer: bool = True) -> str:
     """Format the rewrite result for display."""
-    parts = []
-    if show_disclaimer:
-        parts.append(result.disclaimer)
-    parts.append(result.rewritten)
-    return "\n".join(parts)
+    if show_disclaimer and result.disclaimer:
+        if result.rewritten:
+            return result.disclaimer + "\n" + result.rewritten
+        return result.disclaimer
+    return result.rewritten
 
 
 async def rewrite_instructions(
