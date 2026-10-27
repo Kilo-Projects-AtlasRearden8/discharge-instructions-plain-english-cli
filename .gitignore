@@ -17,4 +17,4 @@ build/
 dist/
 dist/*.tmp
 node_modules/
-venv/
+venv/node_modules/
